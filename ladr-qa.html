@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LADR QA — English Source Audit (2026-06-18)</title>
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#ffffff; --ink:#1f2328; --ink-2:#5b6470; --ink-3:#8a929c;
+  --line:#e2e4e8; --line-2:#d0d4da;
+  --major:#b0243a; --major-bg:#fdecef; --major-line:#f0b9c3;
+  --medium:#8a5a00; --medium-bg:#fdf3e0; --medium-line:#e7cd97;
+  --low:#5b6470; --low-bg:#f2f3f5; --low-line:#d0d4da;
+  --accent:#2a5db0; --accent-bg:#eaf1fd; --accent-line:#b7cbee;
+  --green:#1a7f4b; --green-bg:#e8f6ee; --green-line:#a7d9bd;
+  --focus:#f5b700;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+code{font-family:var(--mono);font-size:.86em;background:#eef0f2;border-radius:4px;padding:1px 5px}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);backdrop-filter:saturate(1.5) blur(8px);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+.brand{font-weight:650;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.counts{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:12.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line-2);background:#fff;white-space:nowrap}
+.pill b{font-weight:650;font-variant-numeric:tabular-nums}
+.pill.maj{color:var(--major);background:var(--major-bg);border-color:var(--major-line)}
+.pill.med{color:var(--medium);background:var(--medium-bg);border-color:var(--medium-line)}
+.pill.low{color:var(--low);background:var(--low-bg);border-color:var(--low-line)}
+.spacer{flex:1 1 auto}
+
+/* ---------- intro ---------- */
+main{max-width:1080px;margin:0 auto;padding:20px 18px 40vh}
+.intro{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:18px}
+.intro h1{margin:0 0 8px;font-size:19px;letter-spacing:-.01em}
+.intro p{margin:8px 0;font-size:14px;color:var(--ink-2)}
+.intro p b{color:var(--ink);font-weight:600}
+.tierhead{margin:26px 4px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:700;border-bottom:1px solid var(--line-2);padding-bottom:6px}
+
+/* ---------- cards ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;scroll-margin-top:64px}
+.card.cursor{border-color:var(--focus);box-shadow:0 0 0 3px rgba(245,183,0,.22)}
+.card.s-major{border-left:4px solid var(--major)}
+.card.s-medium{border-left:4px solid var(--medium)}
+.card.s-low{border-left:4px solid var(--line-2)}
+.chead{display:flex;align-items:center;gap:8px;padding:9px 14px;background:#fbfbfa;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.idx{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);background:#fff;border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.tag{font-size:11.5px;padding:1.5px 8px;border-radius:999px;border:1px solid var(--line-2);background:#fff;color:var(--ink-2);white-space:nowrap}
+.tag.sev-major{color:var(--major);background:var(--major-bg);border-color:var(--major-line);font-weight:600}
+.tag.sev-medium{color:var(--medium);background:var(--medium-bg);border-color:var(--medium-line);font-weight:600}
+.tag.sev-low{color:var(--low)}
+.tag.rubric{color:var(--accent);background:var(--accent-bg);border-color:var(--accent-line);font-weight:600}
+.tag.conf{color:var(--ink-3)}
+
+.fields{padding:4px 0}
+.f{display:grid;grid-template-columns:112px 1fr;gap:14px;padding:8px 14px;align-items:baseline;border-top:1px solid #f4f5f6}
+.f:first-child{border-top:0}
+.f > .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:650;padding-top:2px}
+.f > .v{min-width:0;word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
+.v.note{font-size:14px;color:var(--ink-2)}
+.v pre{margin:0;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.f.hl-suggestion{background:#f4fbf7}
+.f.hl-suggestion .v{color:var(--green)}
+footer{max-width:1080px;margin:0 auto;padding:0 22px 40px;font-size:12.5px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <span class="brand">LADR QA — English Source Audit</span>
+    <div class="counts" id="counts"></div>
+    <span class="spacer"></span>
+    <span class="pill">release <b>2026-06-18</b></span>
+  </div>
+</header>
+
+<main>
+  <div class="intro">
+    <h1>Linear Algebra Done Right, 4th edition — source audit of the 2026-06-18 release</h1>
+    <p><b>Scope.</b> All 13 <code>.tex</code> files of the release (22,120 lines), read in full with a
+    copy-editor's lens, plus mechanical sweeps: doubled words, <code>\ref</code>&rarr;<code>\label</code>
+    integrity, a/an agreement, doubled punctuation, Unicode-character scan, spelling-variant counts.
+    Every finding was verified at byte level against the release files; one-off deviations are counted
+    against the book's own precedent (shown as <i>N:M</i> — conforming vs deviant instances).</p>
+    <p><b>Headline results.</b> Cross-reference integrity is 100% in active text — the only four
+    unresolved <code>\ref</code>s all sit inside <code>\begin{comment}</code> blocks. No doubled words,
+    no a/an errors, no stray punctuation anywhere in active text. The findings below are ordered
+    strongest first: mathematical/content-level, then typos that reach the printed page, then
+    copy-editing and typographic consistency.</p>
+  </div>
+  <div id="list"></div>
+</main>
+
+<footer>
+  Audit performed on the Hebrew-translation side (Züri Bar Yochay project) as a by-product of the
+  translation's QA reads. Line numbers refer to the files in the 2026-06-18 source release.
+  Navigate with <code>J</code>/<code>K</code>.
+</footer>
+
+<script type="application/x-ndjson" id="data">
+{"atom_id": "Eigenvalues4e.tex:2543", "chapter": "05", "rubric": "content", "severity": "major", "en": "Suppose $m = 3$ in Example \\ref{PD} and $D_x, D_y$ are the commuting partial differentiation operators on $\\P\\!_3\\3\\paren[\\big]{\\R2}$ from that example.", "issue": "Exercise references Example PD with pre-revision operator names and space; the example now uses D_w, D_z on P_m(C^2, C) (D_w/D_z x11 in chapter; D_x/D_y only here).", "suggestion": "Rename to $D_w, D_z$ and change the space to $\\P\\!_3\\3\\paren[\\big]{\\CC2, \\C{}}$.", "confidence": "high"}
+{"atom_id": "OpsComplex4e.tex:590", "chapter": "08", "rubric": "content", "severity": "major", "en": "This exercise shows that the implication \\uppar{b} $\\implies$ \\uppar{a} in \\ref{8eignil} does not hold without the hypothesis that $\\F{} = \\C{}$.", "issue": "In 8eignil, (a) and (b) are each self-contained implications, not two sides of an equivalence; '(b) => (a)' does not parse. The exercise shows the implication IN (b) fails without F = C.", "suggestion": "…shows that the implication in \\uppar{b} of \\ref{8eignil} does not hold without the hypothesis that $\\F{} = \\C{}$.", "confidence": "high"}
+{"atom_id": "Multilinear4e.tex:1613", "chapter": "09", "rubric": "content", "severity": "medium", "en": "Suppose $S \\in \\L(V)$. Prove that $S$ is unitary if and only if $\\abs{\\det S} = \\norm{S} = 1$.", "issue": "Unitary and the operator norm need an inner product; the chapter standing assumption makes V a plain vector space. Neighboring exercises (1685/1693/1752) state the hypothesis explicitly.", "suggestion": "Suppose $V$ is an inner product space and $S \\in \\L(V)$.", "confidence": "medium"}
+{"atom_id": "Multilinear4e.tex:322", "chapter": "09", "rubric": "latex", "severity": "major", "en": "\\\\M\\paren[\\big]{ \\rho, (e_1, \\ldots, e_n) } = \\tran{C} B C = C^{-1} B C,", "issue": "Doubled backslash: \\\\M inside \\[...\\] typesets a row-break control sequence plus literal italic M instead of the \\M script-M macro. Only occurrence of this pattern in the book.", "suggestion": "\\M\\paren[\\big]{ \\rho, (e_1, \\ldots, e_n) } = \\tran{C} B C = C^{-1} B C,", "confidence": "high"}
+{"atom_id": "Multilinear4e.tex:1704", "chapter": "09", "rubric": "typography", "severity": "medium", "en": "Show that $g’(0) = \\tr T\\3$.", "issue": "U+2019 typographic apostrophe instead of ASCII ' (math prime); the only non-ASCII punctuation character in all 13 files, so it renders unlike every other derivative in the book.", "suggestion": "Show that $g'(0) = \\tr T\\3$.", "confidence": "high"}
+{"atom_id": "FrontMatter4e.tex:115", "chapter": "00", "rubric": "spelling", "severity": "medium", "en": "(and have a title begining with the word ``{\\small\\textsf{definition}}'' or ``{\\small\\textsf{notation}}'')", "issue": "Misspelling 'begining' (precedent 8:1 for 'beginning').", "suggestion": "beginning", "confidence": "high"}
+{"atom_id": "Polynomials4e.tex:208", "chapter": "04", "rubric": "grammar", "severity": "medium", "en": "By \\ref{460}, there is polynomial $q \\in \\P(\\F{})$ of degree $m-1$ such that", "issue": "Missing article: 'there is polynomial q' (precedent: 'there is a polynomial' x4 elsewhere).", "suggestion": "there is a polynomial $q \\in \\P(\\F{})$", "confidence": "high"}
+{"atom_id": "Multilinear4e.tex:1170", "chapter": "09", "rubric": "typography", "severity": "low", "en": "\\det (AB) = (\\det A)(\\det B)", "issue": "Display equation ending part (b) of 9detmult lacks the terminal period; part (a)'s parallel inline formula has one.", "suggestion": "\\det (AB) = (\\det A)(\\det B).", "confidence": "high"}
+{"atom_id": "Multilinear4e.tex:1499", "chapter": "09", "rubric": "notation", "severity": "low", "en": "The term coming from the identity permutation $\\br{1, \\ldots, n}$ in the formula \\ref{9detformula} for $\\det(zI - A)$", "issue": "Identity permutation written with set braces; permutations are lists and written (1, \\ldots, n) everywhere else.", "suggestion": "the identity permutation $(1, \\ldots, n)$", "confidence": "high"}
+{"atom_id": "OpsInner4e.tex:774", "chapter": "07", "rubric": "latex", "severity": "low", "en": "An operator $B \\in \\L(V)$ is called $\\emph{skew}$ if", "issue": "\\emph wrapped in math mode; every other defined term in exercises is text-mode \\emph{...}.", "suggestion": "An operator $B \\in \\L(V)$ is called \\emph{skew} if", "confidence": "high"}
+{"atom_id": "OpsInner4e.tex:82", "chapter": "07", "rubric": "latex", "severity": "low", "en": "\\exercisedisplayend", "issue": "Inside the example beginning at line 67 (not an exercise): should be \\exampledisplayend (-19bp) rather than \\exercisedisplayend (-20bp). Lines 691/699 are correctly inside exercises.", "suggestion": "\\exampledisplayend", "confidence": "high"}
+{"atom_id": "OpsComplex4e.tex:1110", "chapter": "08", "rubric": "latex", "severity": "low", "en": "\\ker (T - \\la I)^m = \\ker (T - \\la I)^{m+1}\\!.\n\\exercisesubtheoremend\n\\]", "issue": "\\exercisesubtheoremend placed before \\] (inside display math); everywhere else it follows the closed environment. Same at line 1116.", "suggestion": "Move \\exercisesubtheoremend after \\] in items (c) and (d).", "confidence": "high"}
+{"atom_id": "OpsInner4e.tex:3760", "chapter": "07", "rubric": "typography", "severity": "low", "en": "Suppose $U$ and $W$ are subspaces of $V$ such that $\\norm{P_U - P_W} < 1$.", "issue": "Bare P_U/P_W missing the \\! kern; book-wide convention is P_{\\!U} (precedent 76:1).", "suggestion": "$\\norm{P_{\\!U} - P_{\\!W}} < 1$", "confidence": "high"}
+{"atom_id": "InnerProduct4e.tex:2227", "chapter": "06", "rubric": "typography", "severity": "low", "en": "P_{\\ran T}", "issue": "Missing \\! kern in the projection subscript (precedent 13:1 for P_{\\!\\ran T}).", "suggestion": "P_{\\!\\ran T}", "confidence": "high"}
+{"atom_id": "FiniteDimVectorSpaces4e.tex:1070", "chapter": "02", "rubric": "typography", "severity": "low", "en": "The list \\ref{3V1pV2} is contained in $V_1 \\cup V_2$ and thus is contained in $V_1 + V_2$. The span of this list contains $V_1$ and contains $V_2$ and hence is equal to $V_1 + V_2$.", "issue": "Five plain $V_1$/$V_2$ tokens (lines 1070-1071) against the file's V\\1_ convention (precedent 127:5).", "suggestion": "Use V\\1_1 / V\\1_2 as elsewhere in the chapter.", "confidence": "high"}
+{"atom_id": "FiniteDimVectorSpaces4e.tex:1302", "chapter": "02", "rubric": "typography", "severity": "low", "en": "+ \\dim\\bigl( (V\\1_2\\1 +\\! V\\1_3)\\! \\cap\\! V\\1_1 \\bigr) }{3}.", "issue": "Kern before + is \\1 here while the two parallel terms (lines 1300-1301) use \\!.", "suggestion": "(V\\1_2\\! +\\! V\\1_3)", "confidence": "high"}
+{"atom_id": "OpsComplex4e.tex:344", "chapter": "08", "rubric": "latex", "severity": "low", "en": "\\", "issue": "Lone backslash line (control space) between the nil/potens margin note and 'The next result shows...', inserting a stray control-space token at paragraph start.", "suggestion": "Delete the line.", "confidence": "high"}
+{"atom_id": "Multilinear4e.tex:2223", "chapter": "09", "rubric": "notation", "severity": "low", "en": "$\\dim \\B(V\\1_1, \\ldots, V\\1_m) = (\\dim V\\1_1) \\times \\cdots \\times (\\dim V\\1_m)$", "issue": "Uses \\times while the analogous result at line 2245 (and 9dimbi) uses juxtaposition: $(\\dim V\\1_1) \\cdots (\\dim V\\1_m)$. Cosmetic inconsistency between adjacent analogous results.", "suggestion": "Pick one form for both results (juxtaposition matches the rest of the book).", "confidence": "medium"}
+</script>
+
+<script>
+"use strict";
+/* Self-contained viewer: the findings JSONL above is embedded verbatim
+   (glossary/reads/read5/english-2026-06-18/findings.jsonl, "he" field omitted).
+   Read-only — no filters, no decisions, no export. */
+var entries = [];
+document.getElementById("data").textContent.split("\n").forEach(function(line){
+  line = line.trim();
+  if (!line) return;
+  try { entries.push(JSON.parse(line)); } catch(err){}
+});
+
+var TIER = { major: "Major — content errors & typos that reach the page",
+             medium: "Medium — spelling, grammar, missing hypotheses",
+             low: "Low — copy-editing & typographic consistency" };
+var SEV_ORDER = { major: 0, medium: 1, low: 2 };
+entries.sort(function(a, b){                      // stable tier sort; original order kept within a tier
+  var sa = SEV_ORDER[String(a.severity)]; if (sa == null) sa = 9;
+  var sb = SEV_ORDER[String(b.severity)]; if (sb == null) sb = 9;
+  return sa - sb;
+});
+var FIELD_ORDER = ["en","issue","suggestion"];
+var cursor = -1;
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function card(o, i){
+  var el = document.createElement("div");
+  el.className = "card s-" + esc(String(o.severity));
+  el.dataset.i = i;
+  el.onmousedown = function(){ setCursor(i, true); };
+
+  var h = '<div class="chead">';
+  h += '<span class="idx">'+esc(o.atom_id)+'</span>';
+  if (o.chapter  != null) h += '<span class="tag">ch '+esc(o.chapter)+'</span>';
+  if (o.rubric   != null) h += '<span class="tag rubric">'+esc(o.rubric)+'</span>';
+  if (o.severity != null) h += '<span class="tag sev-'+esc(String(o.severity))+'">'+esc(o.severity)+'</span>';
+  h += '<span class="spacer"></span>';
+  if (o.confidence != null) h += '<span class="tag conf">confidence: '+esc(o.confidence)+'</span>';
+  h += '</div>';
+
+  var body = '<div class="fields">';
+  FIELD_ORDER.forEach(function(k){
+    var val = o[k];
+    if (val == null || val === "") return;
+    var inner, cls = "v", rowCls = "f";
+    if (k === "en"){ inner = "<pre>"+esc(String(val))+"</pre>"; }
+    else { cls += " note"; inner = esc(String(val)); }
+    if (k === "suggestion") rowCls += " hl-suggestion";
+    body += '<div class="'+rowCls+'"><div class="k">'+esc(k)+'</div><div class="'+cls+'">'+inner+'</div></div>';
+  });
+  body += '</div>';
+  el.innerHTML = h + body;
+  return el;
+}
+
+function render(){
+  var host = document.getElementById("list");
+  host.innerHTML = "";
+  var lastTier = null;
+  entries.forEach(function(o, i){
+    var t = String(o.severity);
+    if (t !== lastTier && TIER[t]){
+      var head = document.createElement("div");
+      head.className = "tierhead"; head.textContent = TIER[t];
+      host.appendChild(head);
+      lastTier = t;
+    }
+    host.appendChild(card(o, i));
+  });
+  var maj=0, med=0, low=0;
+  entries.forEach(function(o){
+    if (o.severity === "major") maj++;
+    else if (o.severity === "medium") med++;
+    else low++;
+  });
+  document.getElementById("counts").innerHTML =
+    '<span class="pill">total <b>'+entries.length+'</b></span>'+
+    '<span class="pill maj">major <b>'+maj+'</b></span>'+
+    '<span class="pill med">medium <b>'+med+'</b></span>'+
+    '<span class="pill low">low <b>'+low+'</b></span>';
+}
+
+function setCursor(i, quiet){
+  if (i < 0 || i >= entries.length) return;
+  cursor = i;
+  var cards = document.querySelectorAll(".card");
+  for (var n = 0; n < cards.length; n++){
+    var on = Number(cards[n].dataset.i) === cursor;
+    cards[n].classList.toggle("cursor", on);
+    if (on && !quiet) cards[n].scrollIntoView({block:"nearest", behavior:"smooth"});
+  }
+}
+
+document.addEventListener("keydown", function(ev){
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  var k = ev.key.toLowerCase();
+  if (k === "j" || ev.key === "ArrowDown"){ ev.preventDefault(); setCursor(Math.min(cursor+1, entries.length-1)); }
+  else if (k === "k" || ev.key === "ArrowUp"){ ev.preventDefault(); setCursor(Math.max(cursor-1, 0)); }
+});
+
+render();
+</script>
+</body>
+</html>
