@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>x^x Iteration Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one quiet column; a tab row picks the kind of x; the plots carry the page. */
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --ink: #101b27;
+  --muted: #5a6a7b;
+  --line: #d3dbe5;
+  --grid: #e7ecf2;
+  --accent: #256abf;
+  --mark: #eb6834;
+  --ramp: #86b6ef #6da7ec #3987e5 #256abf #184f95 #0d366b;
+  --fate-one: #dbe8f8;
+  --fate-big: #0d366b;
+  --fate-open: #9aa6b3;
+  --display: "STIX Two Text", "Cambria", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0d1218; --panel: #131a23; --ink: #e7edf4; --muted: #94a4b6; --line: #2b3745; --grid: #1e2833;
+    --accent: #6da7ec; --mark: #f08a5d;
+    --ramp: #184f95 #256abf #3987e5 #6da7ec #9ec5f4 #cde2fb;
+    --fate-one: #15263b; --fate-big: #86b6ef; --fate-open: #566373;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1218; --panel: #131a23; --ink: #e7edf4; --muted: #94a4b6; --line: #2b3745; --grid: #1e2833;
+  --accent: #6da7ec; --mark: #f08a5d;
+  --ramp: #184f95 #256abf #3987e5 #6da7ec #9ec5f4 #cde2fb;
+  --fate-one: #15263b; --fate-big: #86b6ef; --fate-open: #566373;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); }
+main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { margin: 0; font: 500 2.1rem/1.15 var(--display); text-wrap: balance; }
+header p { margin: 0; max-width: 65ch; color: var(--muted); }
+var { font-family: var(--display); font-style: italic; }
+sup { line-height: 0; }
+nav { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); }
+nav button { font: 500 0.95rem var(--body); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 8px 12px; cursor: pointer; }
+nav button:hover { color: var(--ink); }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+figcaption { font-size: 0.95rem; max-width: 65ch; min-height: 3em; }
+.plot, .stage { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.plot { height: 460px; }
+.hint { margin: 0; font-size: 0.82rem; color: var(--muted); }
+.fate figcaption { min-height: 0; }
+.stage { position: relative; height: min(68vh, 640px); min-height: 320px; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; image-rendering: pixelated; }
+canvas:active { cursor: grabbing; }
+.tools { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+.tools button { font: 500 0.9rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; min-width: 34px; height: 34px; padding: 0 10px; cursor: pointer; }
+.tools button:hover { border-color: var(--accent); }
+.readout { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; font: 400 0.82rem var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 0.9rem; }
+.key li { display: flex; align-items: center; gap: 8px; }
+.key i { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); flex: none; }
+@media (max-width: 820px) {
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  figcaption { min-height: 0; }
+  .plot { height: 380px; }
+  h1 { font-size: 1.7rem; }
+  main { padding: 20px 16px 32px; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js"></script>
+<script>
+const { useState, useEffect, useRef } = React;
+function zz(x, y) {
+  if (x === 0 && y === 0) return [1, 0];
+  const lr = 0.5 * Math.log(x * x + y * y), th = Math.atan2(y, x);
+  const m = Math.exp(x * lr - y * th), a = x * th + y * lr;
+  return [m * Math.cos(a), m * Math.sin(a)];
+}
+function orbit(x, n) {
+  const out = [];
+  let z = [x, 0];
+  for (let k = 0; k < n; k++) {
+    if (z) {
+      z = zz(z[0], z[1]);
+      if (!isFinite(z[0]) || !isFinite(z[1])) z = null;
+    }
+    out.push(z);
+  }
+  return out;
+}
+function fate(x, y, N) {
+  for (let n = 0; n < N; n++) {
+    const r2 = x * x + y * y;
+    if (r2 === 0) return 0;
+    const hx = x - 1, h2 = hx * hx + y * y;
+    if (h2 === 0) return 0;
+    const ur = -hx / h2, ui = y / h2;
+    if (ur > 10 || ui > 10 || ui < -10) return 0;
+    const lr = 0.5 * Math.log(r2), th = Math.atan2(y, x);
+    const wr = x * lr - y * th;
+    if (wr > 700) return 1;
+    const m = Math.exp(wr), a = x * th + y * lr;
+    x = m * Math.cos(a);
+    y = m * Math.sin(a);
+  }
+  return 2;
+}
+function strip(t) {
+  const nc = Math.ceil(t.cols / t.step), nr = Math.ceil(t.rows / t.step);
+  const out = new Uint8Array(nc * nr);
+  for (let j = 0; j < nr; j++) {
+    const y = t.y0 - (t.row0 + j * t.step + 0.5) * t.d;
+    for (let i = 0; i < nc; i++) out[j * nc + i] = fate(t.x0 + (i * t.step + 0.5) * t.d, y, t.N);
+  }
+  return out;
+}
+const AXES = 6;
+const SUP = ["", "", "²", "³", "⁴", "⁵", "⁶"];
+const SAMPLES = 1500;
+function linspace(a, b, n) {
+  const out = new Array(n);
+  for (let i = 0; i < n; i++) out[i] = a + (b - a) * i / (n - 1);
+  return out;
+}
+function positiveSeries(a, b) {
+  const xs = b > 1e-9 ? linspace(Math.max(a, 1e-9), b, SAMPLES) : [];
+  const ys = Array.from({ length: AXES }, () => []);
+  for (const x of xs) orbit(x, AXES).forEach((z, k) => ys[k].push(z ? z[0] : null));
+  return { x: ys.map(() => xs), y: ys };
+}
+function negativeSeries(a, b) {
+  const xs = a < -1e-9 ? linspace(a, Math.min(b, -1e-9), SAMPLES) : [];
+  const ys = Array.from({ length: AXES }, () => []);
+  for (const x of xs)
+    orbit(x, AXES).forEach((z, k) => ys[k].push(z ? Math.hypot(z[0] - 1, z[1]) || null : null));
+  return { x: ys.map(() => xs), y: ys };
+}
+function readTheme() {
+  const s = getComputedStyle(document.documentElement);
+  const g = (n) => s.getPropertyValue(n).trim();
+  return {
+    ink: g("--ink"),
+    muted: g("--muted"),
+    line: g("--line"),
+    grid: g("--grid"),
+    mark: g("--mark"),
+    ramp: g("--ramp").split(/\s+/),
+    fate: [g("--fate-one"), g("--fate-big"), g("--fate-open")]
+  };
+}
+function useTheme() {
+  const [theme, setTheme] = useState(readTheme);
+  useEffect(() => {
+    const update = () => setTheme((old) => {
+      const now = readTheme();
+      return JSON.stringify(now) === JSON.stringify(old) ? old : now;
+    });
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    mq.addEventListener("change", update);
+    const mo = new MutationObserver(update);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => {
+      mq.removeEventListener("change", update);
+      mo.disconnect();
+    };
+  }, []);
+  return theme;
+}
+const PLOT_CONFIG = {
+  responsive: true,
+  scrollZoom: true,
+  displaylogo: false,
+  doubleClick: "reset",
+  modeBarButtonsToRemove: [
+    "toImage",
+    "select2d",
+    "lasso2d",
+    "zoom2d",
+    "pan2d",
+    "autoScale2d",
+    "zoom3d",
+    "pan3d",
+    "orbitRotation",
+    "tableRotation",
+    "resetCameraLastSave3d",
+    "hoverClosest3d"
+  ]
+};
+function axisStyle(t, extra) {
+  return { color: t.muted, gridcolor: t.grid, linecolor: t.line, zerolinecolor: t.line, ...extra };
+}
+function Plot({ traces, layout, resample, theme, label }) {
+  const el = useRef(null);
+  useEffect(() => {
+    const gd = el.current;
+    Plotly.react(gd, traces, {
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      uirevision: "keep",
+      font: { family: "'IBM Plex Sans', system-ui, sans-serif", size: 12, color: theme.ink },
+      margin: { l: 56, r: 12, t: 12, b: 40 },
+      hoverlabel: { font: { family: "'IBM Plex Mono', monospace" } },
+      ...layout
+    }, PLOT_CONFIG);
+    if (!resample) return;
+    const refresh = () => {
+      const r = gd.layout.xaxis.range;
+      Plotly.restyle(gd, resample(+r[0], +r[1]));
+    };
+    refresh();
+    gd.on("plotly_relayout", refresh);
+    return () => gd.removeAllListeners("plotly_relayout");
+  }, [theme]);
+  useEffect(() => {
+    const gd = el.current;
+    return () => Plotly.purge(gd);
+  }, []);
+  return /* @__PURE__ */ React.createElement("div", { ref: el, className: "plot", role: "img", "aria-label": label });
+}
+function lineTraces(theme, series, hover) {
+  return series.y.map((y, k) => ({
+    type: "scatter",
+    mode: "lines",
+    x: series.x[k],
+    y,
+    connectgaps: false,
+    name: `axis ${k + 2}: f${SUP[k + 1]}(x)`,
+    line: { color: theme.ramp[k], width: 2, simplify: false },
+    hovertemplate: hover
+  }));
+}
+function scene(theme, titles, extra) {
+  const ax = (title) => axisStyle(theme, { title: { text: title }, showbackground: false });
+  return { xaxis: ax(titles[0]), yaxis: ax(titles[1]), zaxis: ax(titles[2]), ...extra };
+}
+function eye(x, y, z) {
+  const k = window.innerWidth < 820 ? 1.45 : 1;
+  return { eye: { x: x * k, y: y * k, z: z * k } };
+}
+function PositiveView({ theme }) {
+  const curve = linspace(1e-6, 1.33, 2500).map((x) => [x, ...orbit(x, 2).map((z) => z[0])]);
+  const col = (i) => curve.map((p) => p[i]);
+  const rule = { type: "line", line: { color: theme.line, width: 1 } };
+  return /* @__PURE__ */ React.createElement("div", { className: "pair" }, /* @__PURE__ */ React.createElement("figure", null, /* @__PURE__ */ React.createElement("figcaption", null, "Each axis as a function of x. Every dip sits at x = 1/e and is shallower than the one before; past x = 1 the values run away."), /* @__PURE__ */ React.createElement(
+    Plot,
+    {
+      theme,
+      label: "Axes 2 to 7 as functions of x",
+      traces: lineTraces(theme, positiveSeries(0, 1.3), "x = %{x:.8g}<br>%{y:.8g}"),
+      resample: positiveSeries,
+      layout: {
+        dragmode: "pan",
+        legend: { x: 0.02, y: 0.98, bgcolor: "rgba(0,0,0,0)" },
+        xaxis: axisStyle(theme, { title: { text: "x" }, range: [0, 1.3] }),
+        yaxis: axisStyle(theme, { title: { text: "value on the axis" }, range: [0, 2.6] }),
+        shapes: [{ ...rule, xref: "paper", x0: 0, x1: 1, y0: 1, y1: 1 }, { ...rule, yref: "paper", y0: 0, y1: 1, x0: 1, x1: 1 }]
+      }
+    }
+  ), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Drag to pan, scroll to zoom, double-click to reset.")), /* @__PURE__ */ React.createElement("figure", null, /* @__PURE__ */ React.createElement("figcaption", null, "The curve on the first three axes, from (0, 1, 1) through (1, 1, 1), both marked. The thin line is its shadow, the graph of f."), /* @__PURE__ */ React.createElement(
+    Plot,
+    {
+      theme,
+      label: "The curve (x, f(x), f(f(x))) in three dimensions",
+      traces: [
+        { type: "scatter3d", mode: "lines", x: col(0), y: col(1), z: col(2), line: { color: theme.ramp[3], width: 6 }, hovertemplate: "x = %{x:.4f}<br>f(x) = %{y:.4f}<br>f(f(x)) = %{z:.4f}<extra></extra>" },
+        { type: "scatter3d", mode: "lines", x: col(0), y: col(1), z: col(0).map(() => 0.6), line: { color: theme.muted, width: 2 }, hoverinfo: "skip" },
+        { type: "scatter3d", mode: "markers", x: [0, 1], y: [1, 1], z: [1, 1], marker: { color: theme.mark, size: 4 }, hovertemplate: "(%{x}, %{y}, %{z})<extra></extra>" }
+      ],
+      layout: {
+        showlegend: false,
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        scene: scene(theme, ["x", "f(x)", "f(f(x))"], { camera: eye(1, -1.9, 0.8) })
+      }
+    }
+  ), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Drag to rotate, scroll to zoom.")));
+}
+function NegativeView({ theme }) {
+  const xs = [...linspace(-3, -1e-6, 5e3), ...linspace(1e-6, 1.2, 500)];
+  const pts = xs.map((x) => zz(x, 0));
+  return /* @__PURE__ */ React.createElement("div", { className: "pair" }, /* @__PURE__ */ React.createElement("figure", null, /* @__PURE__ */ React.createElement("figcaption", null, "For x < 0, f(x) = |x|", /* @__PURE__ */ React.createElement("sup", null, "x"), " e", /* @__PURE__ */ React.createElement("sup", null, "iπx"), " is complex, so axis 2 becomes a plane. The curve winds around the x-axis and closes in on it. The dot is the fixed point −1."), /* @__PURE__ */ React.createElement(
+    Plot,
+    {
+      theme,
+      label: "x against the real and imaginary parts of f(x)",
+      traces: [
+        { type: "scatter3d", mode: "lines", x: xs, y: pts.map((p) => p[0]), z: pts.map((p) => p[1]), line: { color: theme.ramp[3], width: 6 }, hovertemplate: "x = %{x:.4f}<br>Re = %{y:.4f}<br>Im = %{z:.4f}<extra></extra>" },
+        { type: "scatter3d", mode: "lines", x: [-3, 1.2], y: [0, 0], z: [0, 0], line: { color: theme.muted, width: 2 }, hoverinfo: "skip" },
+        { type: "scatter3d", mode: "markers", x: [-1], y: [-1], z: [0], marker: { color: theme.mark, size: 4 }, hovertemplate: "fixed point −1<extra></extra>" }
+      ],
+      layout: {
+        showlegend: false,
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        scene: scene(theme, ["x", "Re f(x)", "Im f(x)"], { aspectmode: "manual", aspectratio: { x: 1.6, y: 1, z: 1 }, camera: eye(1.1, -2.5, 0.9) })
+      }
+    }
+  ), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Drag to rotate, scroll to zoom.")), /* @__PURE__ */ React.createElement("figure", null, /* @__PURE__ */ React.createElement("figcaption", null, "Distance of each axis from 1. The spike is the fixed point −1. At odd negative integers f(x) crosses the branch cut and the next axes jump to the conjugate value."), /* @__PURE__ */ React.createElement(
+    Plot,
+    {
+      theme,
+      label: "Distance of axes 2 to 7 from 1, for negative x",
+      traces: lineTraces(theme, negativeSeries(-4, 0), "x = %{x:.8g}<br>%{y:.6g}"),
+      resample: negativeSeries,
+      layout: {
+        dragmode: "pan",
+        legend: { orientation: "h", x: 0, y: -0.2 },
+        margin: { l: 64, r: 12, t: 12, b: 40 },
+        xaxis: axisStyle(theme, { title: { text: "x" }, range: [-4, 0] }),
+        yaxis: axisStyle(theme, { title: { text: "distance from 1" }, type: "log", range: [-3, 0.6], exponentformat: "power" })
+      }
+    }
+  ), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Drag to pan, scroll to zoom, double-click to reset.")));
+}
+const HOME = { cx: 0, cy: 0, w: 12 };
+const clampW = (w) => Math.min(40, Math.max(1e-11, w));
+const maxSteps = (w) => Math.round(Math.min(3e3, Math.max(250, 250 + 220 * Math.log2(12 / w))));
+function rgba(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return 255 << 24 | (n & 255) << 16 | n & 65280 | n >> 16;
+}
+function makeWorkers(onResult) {
+  try {
+    const src = `${fate}
+${strip}
+onmessage = (e) => { const out = strip(e.data); postMessage({ t: e.data, out }, [out.buffer]); };`;
+    const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+    const n = Math.min(8, Math.max(2, (navigator.hardwareConcurrency || 4) - 1));
+    return Array.from({ length: n }, () => {
+      const w = new Worker(url);
+      w.onmessage = (e) => {
+        w.busy = false;
+        onResult(e.data.t, e.data.out);
+      };
+      w.run = (t) => {
+        w.busy = true;
+        w.postMessage(t);
+      };
+      return w;
+    });
+  } catch (err) {
+    const w = { busy: false, terminate() {
+    } };
+    w.run = (t) => {
+      w.busy = true;
+      setTimeout(() => {
+        w.busy = false;
+        onResult(t, strip(t));
+      }, 0);
+    };
+    return [w];
+  }
+}
+function FateMap({ theme, view, setView }) {
+  const canvas = useRef(null);
+  const eng = useRef({ gen: 0, queue: [], drawn: null }).current;
+  const [size, setSize] = useState(null);
+  const [cursor, setCursor] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const N = maxSteps(view.w);
+  useEffect(() => {
+    const pump = () => {
+      for (const w of eng.workers) if (!w.busy && eng.queue.length) w.run(eng.queue.shift());
+      setBusy(eng.queue.length > 0 || eng.workers.some((w) => w.busy));
+    };
+    eng.pump = pump;
+    eng.workers = makeWorkers((t, out) => {
+      if (t.gen === eng.gen) paint(t, out);
+      pump();
+    });
+    return () => eng.workers.forEach((w) => w.terminate());
+  }, []);
+  function paint(t, out) {
+    const nc = Math.ceil(t.cols / t.step), img = new ImageData(t.cols, t.rows), px = new Uint32Array(img.data.buffer);
+    for (let r = 0; r < t.rows; r++) {
+      const row = Math.floor(r / t.step) * nc;
+      for (let c = 0; c < t.cols; c++) px[r * t.cols + c] = eng.colors[out[row + Math.floor(c / t.step)]];
+    }
+    canvas.current.getContext("2d").putImageData(img, 0, t.row0);
+  }
+  useEffect(() => {
+    const ro = new ResizeObserver(() => {
+      const r = canvas.current.getBoundingClientRect();
+      setSize((s) => s && s.W === Math.round(r.width) && s.H === Math.round(r.height) ? s : { W: Math.round(r.width), H: Math.round(r.height) });
+    });
+    ro.observe(canvas.current);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!size || !size.W) return;
+    const raf = requestAnimationFrame(() => {
+      const cv = canvas.current, ctx = cv.getContext("2d");
+      const k = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(9e5 / (size.W * size.H)));
+      const cols = Math.round(size.W * k), rows = Math.round(size.H * k), d = view.w / cols;
+      const now = { cx: view.cx, cy: view.cy, d, cols, rows };
+      let old = null;
+      if (eng.drawn) {
+        old = document.createElement("canvas");
+        old.width = cv.width;
+        old.height = cv.height;
+        old.getContext("2d").drawImage(cv, 0, 0);
+      }
+      cv.width = cols;
+      cv.height = rows;
+      ctx.fillStyle = theme.fate[2];
+      ctx.fillRect(0, 0, cols, rows);
+      if (old) {
+        const p = eng.drawn, s = p.d / d;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(old, cols / 2 + (p.cx - p.d * p.cols / 2 - view.cx) / d, rows / 2 - (p.cy + p.d * p.rows / 2 - view.cy) / d, p.cols * s, p.rows * s);
+      }
+      eng.drawn = now;
+      eng.colors = theme.fate.map(rgba);
+      eng.gen++;
+      eng.queue = [];
+      for (const step of [4, 1])
+        for (let row0 = 0; row0 < rows; row0 += 16)
+          eng.queue.push({ gen: eng.gen, step, row0, rows: Math.min(16, rows - row0), cols, d, N, x0: view.cx - d * cols / 2, y0: view.cy + d * rows / 2 });
+      eng.pump();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [view, size, theme]);
+  const at = (e) => {
+    const r = canvas.current.getBoundingClientRect(), u = view.w / r.width;
+    return { px: e.clientX - r.left, py: e.clientY - r.top, x: view.cx + (e.clientX - r.left - r.width / 2) * u, y: view.cy - (e.clientY - r.top - r.height / 2) * u };
+  };
+  const zoom = (factor, px, py) => setView((v) => {
+    const r = canvas.current.getBoundingClientRect(), w = clampW(v.w * factor);
+    const ax = (px === void 0 ? 0 : px - r.width / 2) / r.width, ay = (py === void 0 ? 0 : py - r.height / 2) / r.width;
+    return { w, cx: v.cx + ax * (v.w - w), cy: v.cy - ay * (v.w - w) };
+  });
+  useEffect(() => {
+    const cv = canvas.current;
+    const wheel = (e) => {
+      e.preventDefault();
+      const r = cv.getBoundingClientRect();
+      zoom(Math.exp(e.deltaY * (e.deltaMode ? 0.05 : 15e-4)), e.clientX - r.left, e.clientY - r.top);
+    };
+    cv.addEventListener("wheel", wheel, { passive: false });
+    return () => cv.removeEventListener("wheel", wheel);
+  }, []);
+  const touch = useRef(/* @__PURE__ */ new Map()).current;
+  const down = (e) => {
+    canvas.current.setPointerCapture(e.pointerId);
+    touch.set(e.pointerId, [e.clientX, e.clientY]);
+  };
+  const up = (e) => touch.delete(e.pointerId);
+  const move = (e) => {
+    const p = at(e);
+    setCursor(e.pointerType === "mouse" ? p : null);
+    const last = touch.get(e.pointerId);
+    if (!last) return;
+    const r = canvas.current.getBoundingClientRect();
+    if (touch.size === 1) {
+      const dx = e.clientX - last[0], dy = e.clientY - last[1];
+      setView((v) => ({ ...v, cx: v.cx - dx * v.w / r.width, cy: v.cy + dy * v.w / r.width }));
+    } else if (touch.size === 2) {
+      const other = [...touch.entries()].find(([id]) => id !== e.pointerId)[1];
+      const before = Math.hypot(last[0] - other[0], last[1] - other[1]), after = Math.hypot(e.clientX - other[0], e.clientY - other[1]);
+      if (before > 0 && after > 0) zoom(before / after, (e.clientX + other[0]) / 2 - r.left, (e.clientY + other[1]) / 2 - r.top);
+    }
+    touch.set(e.pointerId, [e.clientX, e.clientY]);
+  };
+  const digits = Math.max(3, Math.ceil(-Math.log10(view.w)) + 3);
+  const cplx = (x, y) => `${x.toFixed(digits)} ${y < 0 ? "−" : "+"} ${Math.abs(y).toFixed(digits)}i`;
+  return /* @__PURE__ */ React.createElement("figure", { className: "fate" }, /* @__PURE__ */ React.createElement("figcaption", null, "Each point is a starting value z, colored by where its iterates z, f(z), f(f(z)), … end up."), /* @__PURE__ */ React.createElement("div", { className: "stage" }, /* @__PURE__ */ React.createElement(
+    "canvas",
+    {
+      ref: canvas,
+      role: "img",
+      "aria-label": "Map of the complex plane colored by the fate of each starting point",
+      onPointerDown: down,
+      onPointerMove: move,
+      onPointerUp: up,
+      onPointerCancel: up,
+      onPointerLeave: () => setCursor(null)
+    }
+  ), /* @__PURE__ */ React.createElement("div", { className: "tools" }, /* @__PURE__ */ React.createElement("button", { type: "button", id: "zoom-in", "aria-label": "Zoom in", onClick: () => zoom(0.5) }, "+"), /* @__PURE__ */ React.createElement("button", { type: "button", id: "zoom-out", "aria-label": "Zoom out", onClick: () => zoom(2) }, "−"), /* @__PURE__ */ React.createElement("button", { type: "button", id: "reset-view", onClick: () => setView(HOME) }, "Reset"))), /* @__PURE__ */ React.createElement("p", { className: "readout" }, /* @__PURE__ */ React.createElement("span", null, "center ", cplx(view.cx, view.cy)), /* @__PURE__ */ React.createElement("span", null, "width ", view.w.toPrecision(3)), /* @__PURE__ */ React.createElement("span", null, cursor ? `pointer ${cplx(cursor.x, cursor.y)}` : busy ? "computing…" : " ")), /* @__PURE__ */ React.createElement("ul", { className: "key" }, /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("i", { style: { background: theme.fate[0] } }), /* @__PURE__ */ React.createElement("span", null, "converges to 1")), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("i", { style: { background: theme.fate[1] } }), /* @__PURE__ */ React.createElement("span", null, "an iterate exceeds e", /* @__PURE__ */ React.createElement("sup", null, "700"), "; not followed further")), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("i", { style: { background: theme.fate[2] } }), /* @__PURE__ */ React.createElement("span", null, "undecided after ", N, " steps"))), /* @__PURE__ */ React.createElement("p", { className: "hint" }, "Drag to pan, scroll or pinch to zoom. The step limit rises as you zoom in."));
+}
+const TABS = [
+  { id: "positive", label: "Real x > 0" },
+  { id: "negative", label: "Real x < 0" },
+  { id: "complex", label: "Complex x" }
+];
+const fromHash = () => (TABS.find((t) => "#" + t.id === location.hash) || TABS[0]).id;
+function App() {
+  const theme = useTheme();
+  const [tab, setTab] = useState(fromHash);
+  const [view, setView] = useState(HOME);
+  useEffect(() => {
+    const onHash = () => setTab(fromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const pick = (id) => {
+    setTab(id);
+    try {
+      history.replaceState(null, "", "#" + id);
+    } catch (e) {
+    }
+  };
+  return /* @__PURE__ */ React.createElement("main", null, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("h1", null, /* @__PURE__ */ React.createElement("var", null, "x"), /* @__PURE__ */ React.createElement("sup", null, /* @__PURE__ */ React.createElement("var", null, "x")), ", iterated"), /* @__PURE__ */ React.createElement("p", null, "Let ", /* @__PURE__ */ React.createElement("var", null, "f"), "(", /* @__PURE__ */ React.createElement("var", null, "x"), ") = ", /* @__PURE__ */ React.createElement("var", null, "x"), /* @__PURE__ */ React.createElement("sup", null, /* @__PURE__ */ React.createElement("var", null, "x")), ". Axis 1 holds ", /* @__PURE__ */ React.createElement("var", null, "x"), ", axis 2 holds ", /* @__PURE__ */ React.createElement("var", null, "f"), "(", /* @__PURE__ */ React.createElement("var", null, "x"), "), axis 3 holds ", /* @__PURE__ */ React.createElement("var", null, "f"), "(", /* @__PURE__ */ React.createElement("var", null, "f"), "(", /* @__PURE__ */ React.createElement("var", null, "x"), ")), and so on: axis ", /* @__PURE__ */ React.createElement("var", null, "k"), " + 1 holds ", /* @__PURE__ */ React.createElement("var", null, "f"), /* @__PURE__ */ React.createElement("sup", null, /* @__PURE__ */ React.createElement("var", null, "k")), "(", /* @__PURE__ */ React.createElement("var", null, "x"), ").")), /* @__PURE__ */ React.createElement("nav", { role: "tablist", "aria-label": "Which x" }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, type: "button", id: "tab-" + t.id, role: "tab", "aria-selected": tab === t.id, onClick: () => pick(t.id) }, t.label))), tab === "positive" && /* @__PURE__ */ React.createElement(PositiveView, { theme }), tab === "negative" && /* @__PURE__ */ React.createElement(NegativeView, { theme }), tab === "complex" && /* @__PURE__ */ React.createElement(FateMap, { theme, view, setView }));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
+
+</script>
+</body>
+</html>
