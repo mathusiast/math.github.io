@@ -18,7 +18,7 @@ var player = {
     if (this.yt || this.apiLoading) return; this.apiLoading = true;
     window.onYouTubeIframeAPIReady = () => {
       const t = this.pending, play = this.pendingPlay; this.pending = null; this.loadedId = t.vid; this.end = t.end; this.watch();
-      this.yt = new YT.Player("yt", { host: "https://www.youtube-nocookie.com", videoId: t.vid,
+      this.yt = new YT.Player("yt", { host: "https://www.youtube.com", videoId: t.vid,
         playerVars: { rel: 0, playsinline: 1, modestbranding: 1, enablejsapi: 1, autoplay: play ? 1 : 0, start: Math.floor(t.start) },
         events: { onReady: () => { this.ready = true; if (this.pending) { const p = this.pending, pp = this.pendingPlay; this.pending = null; pp ? this.load(p) : this.cueAt(p); } } } });
     };
